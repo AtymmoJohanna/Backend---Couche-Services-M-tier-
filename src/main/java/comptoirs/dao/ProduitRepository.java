@@ -91,4 +91,5 @@ public interface ProduitRepository extends JpaRepository<Produit, Integer> {
 	@Query("select p from Produit p")
     List<ProduitProjection> findAllWithProjection();
 
+
 }

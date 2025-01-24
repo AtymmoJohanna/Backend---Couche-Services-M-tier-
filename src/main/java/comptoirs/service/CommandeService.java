@@ -3,6 +3,7 @@ package comptoirs.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import comptoirs.entity.Produit;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -106,8 +107,18 @@ public class CommandeService {
      */
     @Transactional
     public Ligne ajouterLigne(int commandeNum, int produitRef, @Positive int quantite) {
-        // TODO : implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+        Commande fromCom = commandeDao.findById(commandeNum).orElseThrow();
+        Produit fromPro = produitDao.findById(produitRef).orElseThrow();
+
+        int qteEnStock = fromPro.getUnitesEnStock();
+
+        if (fromCom.getEnvoyeele()!=null || qteEnStock<quantite || fromPro.isIndisponible()) {
+            throw new IllegalStateException ();
+        }
+        fromPro.setUnitesCommandees(quantite+fromPro.getUnitesCommandees());
+        var ligne = new Ligne(fromCom, fromPro, quantite);
+        ligneDao.save(ligne);
+        return ligne;
     }
 
     /**
@@ -130,7 +141,18 @@ public class CommandeService {
      */
     @Transactional
     public Commande enregistreExpedition(int commandeNum) {
-        // TODO : implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+        Commande fromCom = commandeDao.findById(commandeNum).orElseThrow();
+
+        if (fromCom.getEnvoyeele()!=null) {
+            throw new IllegalStateException ();
+        }
+        fromCom.setEnvoyeele(LocalDate.now());
+        Produit p;
+        for (Ligne ligne : fromCom.getLignes()) {
+            p=ligne.getProduit();
+            p.setUnitesCommandees(p.getUnitesCommandees()-ligne.getQuantite());
+            p.setUnitesEnStock(p.getUnitesEnStock()-ligne.getQuantite());
+        }
+        return commandeDao.save(fromCom);
     }
 }
